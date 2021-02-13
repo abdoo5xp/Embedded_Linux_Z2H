@@ -84,3 +84,5 @@ case $1 in
 * ) echo "Wrong Argument "
     exit 1    ;;
 esac
+
+exit 0
