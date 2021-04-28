@@ -1,0 +1,53 @@
+#!/bin/sh
+
+#This function checks if a device/directory is mounted --> return 0, else return +ve number                                
+isMounted() {                                                                                                              
+if [ -e $1 ];then                                                                                                          
+        return 0;                                                                                                          
+else                                                                                                                       
+        return 1;                                                                                                          
+fi                                                                                                                         
+}                                                                                                                          
+                                                                                                                           
+base=/mnt/                                                                                                                 
+device_mount_dir=/mnt/                                                                                                     
+                                                                                                                           
+while true                                                                                                                 
+do                                                                                                                         
+                                                                                                                           
+#loop on the devices connected to the RPI (.  --> matches any character, * Zero or more occurs of the preceding character )
+#NOTE: if gives True if the condition equals zero when you put your condition without brackets                             
+for device in `blkid | grep -oE /dev/sd..`; do                                                                             
+        #echo $device   #for debugging                                                                                     
+        device_mount_dir="$base`expr substr $device 6 11`"                                                                 
+        if ! isMounted $device_mount_dir ;then                                                                             
+                echo "A new Device has been detected" #for debugging                                                      
+                mkdir $device_mount_dir  &>/dev/null                                                                       
+                mount $device $device_mount_dir &>/dev/null                                                     
+        fi                                                                                                      
+done                                                                                                            
+                                                                                                                
+#If any device is removed delete its file after unmounting it because "file is busy"   
+                                                                                                          
+#loop on the files if you find them in the devices lis then the device is still connected if not delete its file           
+for file in `ls $base`;                                                                                                    
+do                                                                                                                         
+        file_Not_found=0                                                                                                   
+        for dev in `blkid | grep -oE /dev/sd..`;                                                                           
+        do                                                                                                                 
+                if [ $file = `expr substr $dev 6 11` ];then                                                                
+                        #echo "Device Found for $file"    #for Debugging                                                   
+                        file_Not_found=1                                                                                   
+                fi                                                                                                         
+        done                                                                                                               
+        if [ $file_Not_found -eq 0 ];then                                                                                  
+                echo "A device has been removed"   #for Debugging                                                         
+                umount $base$file  &>/dev/null                                                                             
+                rmdir $base$file   &>/dev/null                                                                             
+        fi                                                                                                                 
+done                                                                                                                       
+                                                                                                                
+sleep 0.5 #this sleep is to reduce CPU Load                                                                       
+                                                                                                                
+done #The super loop end                                                                                        
+

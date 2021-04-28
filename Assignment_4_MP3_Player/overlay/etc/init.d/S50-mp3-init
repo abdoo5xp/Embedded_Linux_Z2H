@@ -1,0 +1,16 @@
+#!/bin/sh
+
+DAEMON1="/scripts/devAutoMount"
+
+test -f ${DAEMON1} || exit 0
+
+startdaemon1(){
+  start-stop-daemon -b --start --quiet --exec ${DAEMON1}
+}
+
+stopdaemon1(){
+  start-stop-daemon --stop --quiet --exec ${DAEMON1}
+}
+
+sleep 5
+startdaemon1
