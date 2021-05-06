@@ -1,0 +1,47 @@
+#!/bin/sh
+echo "Starting Gpio input " >>mp3Log.txt
+
+ReqPath="/scripts/Requests/Req"		# RPI -> "/scripts/Requests/Req" PC -> "./Requests/Req"
+playBtn=$1
+stopBtn=$2
+nextBtn=$3
+prevBtn=$4
+
+readBtn(){                                        
+val=`cat /sys/class/gpio/gpio$1/value`                  
+}                                                 
+          
+askRequest(){
+	lock=`cat $ReqPath`		
+	
+	#block on the req till it equals zero-> semaphore 	
+	while [ $lock -ne 0 ];
+	do
+		lock=`cat $ReqPath`
+	   	# This colon means do nothing 
+	done
+	
+	# now change the request to your req	
+	echo $1 > $ReqPath
+}
+
+while true 
+do 
+	readBtn $playBtn
+	if [ "$val" == "0" ]; then
+		askRequest "1"
+	fi 
+	readBtn $stopBtn
+	if [ "$val" == "0" ]; then
+		askRequest "2"
+	fi 
+	readBtn $nextBtn
+	if [ "$val" == "0" ]; then
+		askRequest "3"
+	fi 
+	readBtn $prevBtn
+	if [ "$val" == "0" ]; then
+		askRequest "4"
+	fi 
+sleep 0.15 
+done 

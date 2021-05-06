@@ -1,0 +1,134 @@
+#!/bin/sh
+
+
+CurrentState="Idle"  			#Playing or Paused or Idle
+ReqPath="/scripts/Requests/Req"		# RPI -> "/scripts/Requests/Req" , pc -> "./Requests/Req"
+SongsListPath="/scripts/Songslist.txt"	# RPI -> "/scripts/Songslist.txt", pc -> "SongsList.txt"
+FifoPath="/scripts/pipe"
+pidOfPlayer=0
+currSongIdx=1
+
+
+echo "Starting mp3 Main ...">/mp3Log.txt
+
+#a function that take song index in the list and play it 
+play(){
+	#song=`head -$1 $SongsListPath` -> if you want to play a specific song  
+	mpg123 -R --fifo $FifoPath > /dev/null 2>>/mp3Log.txt &	
+	if [ $? -eq 0 ];then
+		pidOfPlayer=`echo $!`
+		sleep 0.6
+		echo "loadlist 1 $SongsListPath">$FifoPath
+		CurrentState="Playing"
+		echo "MP3 player is ON ";	
+	else  
+		echo "Couldn't play mpg123";	
+	fi
+}
+
+
+pause(){
+	if [ $pidOfPlayer -ne 0 ];then 
+		kill -STOP $pidOfPlayer
+		CurrentState="Paused"
+		echo "Paused";	
+	else
+		echo "Error calling continue while there is no pid";
+	fi	
+}
+
+cont(){
+	if [ $pidOfPlayer -ne 0 ];then 
+		kill -CONT $pidOfPlayer
+		CurrentState="Playing"
+		echo "Continued";	
+	else
+		echo "Error calling continue while there is no pid";
+	fi	
+}
+
+
+stop(){
+	if [ $pidOfPlayer -ne 0 ];then 
+		kill -9 $pidOfPlayer
+		pidOfPlayer=0
+		rm $FifoPath
+		CurrentState="Idle"
+		echo "Stopped";	
+	else
+		echo "Error calling Stop while there is no pid";
+	fi
+}
+
+
+next(){
+	echo "Inside Next Func ">>/mp3Log.txt
+	if [ $pidOfPlayer -ne 0 ];then 
+		numOfSongs=`wc -l $SongsListPath`
+		currSongIdx=$((currSongIdx+1))
+		if [ "$((currSongIdx-1))" = ${numOfSongs::1} ];then 
+			currSongIdx=1
+		fi 
+		echo "loadlist $currSongIdx $SongsListPath">$FifoPath
+		CurrentState="Playing"
+		echo "Playing Next...";	
+	else
+		echo "Error calling Stop while there is no pid";
+	fi
+}
+
+
+prev(){
+	echo "Inside prev Func ">>/mp3Log.txt
+	if [ $pidOfPlayer -ne 0 ];then 
+		currSongIdx=$((currSongIdx-1))
+		if [ "currSongIdx" = "0" ];then 
+			currSongIdx=`wc -l "$SongsListPath"`			
+			currSongIdx=${currSongIdx::1}
+		fi 
+		echo "loadlist $currSongIdx $SongsListPath">$FifoPath
+		CurrentState="Playing"
+		echo "Playing Previous...";	
+	else
+		echo "Error calling Stop while there is no pid";
+	fi
+}
+
+
+while true
+do 
+	Req=`cat $ReqPath`
+	case $Req in
+	1)
+	echo "0" > $ReqPath
+		if [ $CurrentState = "Idle" ];then
+			play		
+		elif [ $CurrentState = "Playing" ];then
+			pause
+		elif [ $CurrentState = "Paused" ];then
+			cont
+		else 
+			echo "Current State Error ";
+		fi 
+	;;
+	2)
+	echo "0" > $ReqPath
+	#Execute the stop action
+		stop 
+	;;
+	3)
+	echo "0" > $ReqPath
+	#Execute the next action 
+		next
+	;;
+	4)
+	echo "0" > $ReqPath
+	#Execute the prev action
+		prev 
+	;;	
+	*)
+	#TODO: Check if CurrrentSate is playing -> check if the Song still exists if not change the Req to stop 
+	;;
+	esac
+	sleep 0.5
+done

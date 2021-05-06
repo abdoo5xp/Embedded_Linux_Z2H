@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo "starting the auto mount script " > /mp3Log.txt
 #This function checks if a device/directory is mounted --> return 0, else return +ve number                                
 isMounted() {                                                                                                              
 if [ -e $1 ];then                                                                                                          
@@ -21,7 +22,7 @@ for device in `blkid | grep -oE /dev/sd..`; do
         #echo $device   #for debugging                                                                                     
         device_mount_dir="$base`expr substr $device 6 11`"                                                                 
         if ! isMounted $device_mount_dir ;then                                                                             
-                echo "A new Device has been detected" #for debugging                                                      
+                echo "A new Device has been detected"; #for debugging                                                      
                 mkdir $device_mount_dir  &>/dev/null                                                                       
                 mount $device $device_mount_dir &>/dev/null                                                     
         fi                                                                                                      
@@ -41,12 +42,15 @@ do
                 fi                                                                                                         
         done                                                                                                               
         if [ $file_Not_found -eq 0 ];then                                                                                  
-                echo "A device has been removed"   #for Debugging                                                         
+                echo "A device has been removed";   #for Debugging                                                         
                 umount $base$file  &>/dev/null                                                                             
                 rmdir $base$file   &>/dev/null                                                                             
         fi                                                                                                                 
 done                                                                                                                       
-                                                                                                                
+
+#Update the songs list according to the newly connected/removed devices         
+find /mnt /Songs -type f -name "*.mp3" > /scripts/Songslist.txt 2>/dev/null
+                                                                                                      
 sleep 0.5 #this sleep is to reduce CPU Load                                                                       
                                                                                                                 
 done #The super loop end                                                                                        

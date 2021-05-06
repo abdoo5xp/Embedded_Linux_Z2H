@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ReqPath="/scripts/Requests/Req"		# RPI -> "/scripts/Requests/Req", pc -> "/home/abdoo/Mp3_Files/overlay/scripts/Requests/Req"
+echo "3" > $ReqPath  #TODO: 2>/dev/null at the release
+
+
